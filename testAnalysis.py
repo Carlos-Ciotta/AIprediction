@@ -16,7 +16,7 @@ price_pred = ['solarradiation','Hídrica','Eólica','Solar',
 if __name__ == "__main__":
         if(os.path.exists('datasets/data_training.csv')):
             data = pd.read_csv('datasets/data_training.csv')
-            data = data[consumption_pred]
+            data = data[price_pred]
             features = data.columns
             plot_correlation(data, features)
             #sum = OLS(data[features], data['Active Energy (MWh) - Porto'])

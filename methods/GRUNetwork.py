@@ -70,20 +70,21 @@ class GRUNetwork:
         self.model = load_model(filename)
 
     # Method to visualize the predicted values against the actual values
-    def plot_prediction(self, y_pred, y_test):
-        # Sets the figure size for the plot
+    def plot_prediction(self, y_pred, y_test, type):
         plt.figure(figsize=(10, 6))
 
-        # Plots the actual values as a dashed blue line
-        plt.plot(y_test[:72, 0], label="Energy Consumption", color='blue', linestyle='dashed')
-        
         # Plots the predicted values as a red line
         plt.plot(y_pred[:72, 0], label="Prediction", color='red', alpha=0.7)
-
-        # Adds title and axis labels
-        plt.title("Real values x Predicted values", fontsize=14)
-        plt.xlabel("Hours", fontsize=12)
-        plt.ylabel("Energetic Balance", fontsize=12)
+        plt.plot(y_test[:72, 0], label="Real Value", color='blue', alpha=0.7)
+        if(type == 'consumption'):
+            # Adds title and axis labels
+            plt.title("Energy Consumption", fontsize=14)
+            plt.xlabel("Hours", fontsize=12)
+            plt.ylabel("Energy Consumption (MWh)", fontsize=12)
+        elif(type=='price'):
+            plt.title("Energy Price", fontsize=14)
+            plt.xlabel("Hours", fontsize=12)
+            plt.ylabel("Price (Euro/MWh)", fontsize=12)
 
         # Displays a legend for the plot
         plt.legend()

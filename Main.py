@@ -37,7 +37,7 @@ epochs_p = 600
 test_rate_p = 0.2
 eta_p = 1e-2
 
-def rnn_modeling(features, path, test_rate, epochs,eta, out):
+def rnn_modeling(features, path, test_rate, epochs,eta, out,type):
 #this function creates a rnn model
     #declare params
     batch_size = 32
@@ -58,10 +58,10 @@ def rnn_modeling(features, path, test_rate, epochs,eta, out):
 
     #calculate R2 and MSE to future comparation with regression
     mse,r2 = rnn.evaluate(y_pred, y_test)
-    
+    rnn.plot_prediction(y_pred, y_test, type)
     return y_pred, mse, r2
 
-def load_model(features, path, test_rate, epochs,eta, out):
+def load_model(features, path, test_rate, epochs,eta, out,type):
 #this function load a rnn model
     x_train,x_test, y_train, y_test, scalerx, scalery = tnpdl.dataProcessing_toNumpy(data[features], test_rate, out)
 
@@ -76,10 +76,10 @@ def load_model(features, path, test_rate, epochs,eta, out):
 
     #calculate R2 and MSE to future comparation with regression
     mse,r2 = rnn.evaluate(y_pred, y_test)
-
+    rnn.plot_prediction(y_pred, y_test, type)
     return y_pred, mse, r2
 
-def plot_scatterplot(y_pred,type):
+def plot_scatterplot(y_pred, type):
     n_repeats = (y_pred.shape[0] // 24) + 1
     hours = np.tile(np.arange(0, 24), n_repeats)[:(y_pred.shape[0])]  #24 hours interval
     # Ploting scatter plot
@@ -95,7 +95,28 @@ def plot_scatterplot(y_pred,type):
         plt.ylabel("Price")
 
     return plt.show()
-    
+
+def plot_line(y_pred,type):
+    # Sets the figure size for the plot
+        plt.figure(figsize=(10, 6))
+
+        # Plots the predicted values as a red line
+        plt.plot(y_pred[:72, 0], label="Prediction", color='red', alpha=0.7)
+        plt.plot(y_test[:72, 0], label="Real Value", color='blue', alpha=0.7)
+        if(type == 'consumption'):
+            # Adds title and axis labels
+            plt.title("Energy Consumption", fontsize=14)
+            plt.xlabel("Hours", fontsize=12)
+            plt.ylabel("Energy Consumption (MWh)", fontsize=12)
+        elif(type=='price'):
+            plt.title("Energy Price", fontsize=14)
+            plt.xlabel("Hours", fontsize=12)
+            plt.ylabel("Price (Euro/MWh)", fontsize=12)
+        # Displays a legend for the plot
+        plt.legend()
+
+        return plt.show()
+
 if __name__ == "__main__":
     #first verify if the processed dataset unifying every csv exists
     try:
@@ -118,16 +139,16 @@ if __name__ == "__main__":
     else:
         if((os.path.exists('RNNmodels/consumption_model4.h5')) and os.path.exists('RNNmodels/price_model.h5')):
             #load model
-            y_predGRUConsumption, mse_GRUConsumption, r2_GRUConsumption = load_model(features_consumption, 'RNNmodels/consumption_model4.h5', test_rate_c, epochs_c,eta_c, 'Active Energy (MWh) - Porto')
+            y_predGRUConsumption, mse_GRUConsumption, r2_GRUConsumption = load_model(features_consumption, 'RNNmodels/consumption_model4.h5', test_rate_c, epochs_c,eta_c, 'Active Energy (MWh) - Porto', 'consumption')
             #load model
-            y_predGRUPrice, mse_GRUPrice, r2_GRUPrice =load_model(features_price, 'RNNmodels/price_model.h5', test_rate_p, epochs_p,eta_p, 'Portugal')
+            y_predGRUPrice, mse_GRUPrice, r2_GRUPrice =load_model(features_price, 'RNNmodels/price_model.h5', test_rate_p, epochs_p,eta_p, 'Portugal', 'price')
 
         else:
             if(not (os.path.exists('RNNmodels/price_model.h5'))):
-                y_predGRUPrice, mse_GRUPrice, r2_GRUPrice = rnn_modeling(features_price, 'price_model.h5', test_rate_p, epochs_p,eta_p,'Portugal')
+                y_predGRUPrice, mse_GRUPrice, r2_GRUPrice = rnn_modeling(features_price, 'price_model.h5', test_rate_p, epochs_p,eta_p,'Portugal', 'price')
 
             if(not (os.path.exists('RNNmodels/consumption_model4.h5'))):
-                y_predGRUConsumption, mse_GRUConsumption, r2_GRUConsumption = rnn_modeling(features_consumption, 'consumption_model4.h5', test_rate_c, epochs_c,eta_c, 'Active Energy (MWh) - Porto')
+                y_predGRUConsumption, mse_GRUConsumption, r2_GRUConsumption = rnn_modeling(features_consumption, 'consumption_model4.h5', test_rate_c, epochs_c,eta_c, 'Active Energy (MWh) - Porto', 'consumption')
         
         #regressor
         impPrice, y_pred_forestPrice, mse_forestPrice, r2_forestPrice = random_forest(data[price_pred], data['Portugal'], test_rate_p, price_pred)
@@ -141,37 +162,39 @@ if __name__ == "__main__":
 
         measurements = pd.DataFrame({'Method (PRICE)':['Ridge', 'Lasso', 'Random Forest', 'GRU'],
                                       'R2 - Price': [r2_ridgePrice, r2_lassoPrice, r2_forestPrice, r2_GRUPrice],
-                                      'MSE - Price': [mse_ridgePrice, mse_lassoPrice, mse_forestPrice, mse_GRUPrice],
+                                      #'MSE - Price': [mse_ridgePrice, mse_lassoPrice, mse_forestPrice, mse_GRUPrice],
 
                                       'Method (CONSUMPTION)':['Ridge', 'Lasso', 'Random Forest', 'GRU'],
-                                      'R2 - Consumption': [r2_ridgeConsumption, r2_lassoConsumption, r2_forestConsumption, r2_GRUConsumption],
-                                      'MSE - Consumption': [mse_ridgeConsumption, mse_lassoConsumption, mse_forestConsumption, mse_GRUConsumption],
+                                      'R2 - Consumption': [r2_ridgeConsumption, r2_lassoConsumption, r2_forestConsumption, r2_GRUConsumption]
+                                      #'MSE - Consumption': [mse_ridgeConsumption, mse_lassoConsumption, mse_forestConsumption, mse_GRUConsumption],
                                       })
         
         print(measurements)
 
-        #selecting the lowest r2
+        #selecting the highest r2
         min_index = measurements['R2 - Price'].idxmax()
         best_method = measurements.loc[min_index, 'Method (PRICE)']
 
         if(best_method == 'Ridge'):
-            plot_scatterplot(y_pred_ridgePrice, 'price')
+            plot_line(y_pred_ridgePrice, 'price')
         elif(best_method == 'Lasso'):
-            plot_scatterplot(y_pred_lassoPrice, 'price')
+            plot_line(y_pred_lassoPrice, 'price')
         elif(best_method == 'Random Forest'):
-            plot_scatterplot(y_pred_forestPrice, 'price')
+            plot_line(y_pred_forestPrice, 'price')
         elif(best_method == 'GRU'):
-            plot_scatterplot(y_predGRUPrice, 'price')
+            plot_line(y_predGRUPrice, 'price')
 
-        #selecting the lowest r2
-        min_index = measurements['R2 - Consumption'].idxmin()
+        #selecting the highest r2
+        min_index = measurements['R2 - Consumption'].idxmax()
         best_method = measurements.loc[min_index, 'Method (CONSUMPTION)']
 
         if(best_method == 'Ridge'):
-            plot_scatterplot(y_pred_ridgeConsumption, 'consumption')
+            plot_line(y_pred_ridgeConsumption, 'consumption')
         elif(best_method == 'Lasso'):
-            plot_scatterplot(y_pred_lassoConsumption, 'consumption')
+            plot_line(y_pred_lassoConsumption, 'consumption')
         elif(best_method == 'Random Forest'):
-            plot_scatterplot(y_pred_forestConsumption, 'consumption')
+            plot_line(y_pred_forestConsumption, 'consumption')
         elif(best_method == 'GRU'):
-            plot_scatterplot(y_predGRUConsumption, 'consumption')
+            plot_line(y_predGRUConsumption, 'consumption')
+
+        print(y_predGRUConsumption.shape)
